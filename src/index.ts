@@ -1,7 +1,3 @@
-import express = require("express");
-const app = express();
-const port = 3000;
+import { appLogic } from "./appLogic";
 
-app.get("/", (req, res) => res.send("Hello World!"));
-
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+appLogic().then(port => console.log(`App listening on port ${port}!`));
