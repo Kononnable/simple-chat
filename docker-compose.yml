@@ -4,7 +4,7 @@ services:
   # mongodb
   mongodb:
     image: "mongo:4.0.7"
-    container_name: "typeorm-mongodb"
+    container_name: "chat-mongodb"
     ports:
       - "27017:27017"
     # volumes:
