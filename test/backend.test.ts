@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import { AddressInfo } from "net";
 import io = require("socket.io-client");
-import { appLogic } from "../src/appLogic";
-import { ISocketMessage } from "../src/schemaModelst";
+import { appLogic } from "../src/backend/appLogic";
+import { ISocketMessage } from "../src/communicationModels/schemas";
 
 it("should connect", async () => {
 

@@ -4,9 +4,10 @@
     "description": "",
     "main": "dist/index.js",
     "scripts": {
-        "start": " node ./dist/src/index.js",
-        "compile": "npm run clean && tsc",
-        "prettier": "prettier --write ./src/*.ts ./src/**/*.ts",
+        "start": "node ./dist/src/backend/index.js",
+        "watch": "npm run clean && tsc -w & webpack -w",
+        "compile": "npm run clean && tsc && webpack",
+        "prettier": "prettier --write ./src/**/*.ts ./src/**/*.tsx",
         "clean": "rimraf dist",
         "test": "mocha dist/test/**/*.test.js  -- -R spec --bail --exit"
     },
@@ -35,17 +36,26 @@
         "@types/mocha": "^5.2.6",
         "@types/mongodb": "^3.1.22",
         "@types/node": "^10.14.4",
+        "@types/react": "^16.8.10",
+        "@types/react-dom": "^16.8.3",
         "@types/socket.io": "^2.1.2",
         "@types/socket.io-client": "^1.4.32",
         "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
+        "css-loader": "^2.1.1",
         "husky": "^1.3.1",
         "mocha": "^6.0.2",
         "prettier": "^1.16.4",
+        "react": "^16.8.6",
+        "react-dom": "^16.8.6",
         "rimraf": "^2.6.3",
+        "style-loader": "^0.23.1",
+        "ts-loader": "^5.3.3",
         "tslint": "^5.14.0",
         "tslint-config-prettier": "^1.18.0",
-        "typescript": "^3.3.4000"
+        "typescript": "^3.3.4000",
+        "webpack": "^4.29.6",
+        "webpack-cli": "^3.3.0"
     },
     "husky": {
         "hooks": {

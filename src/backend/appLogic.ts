@@ -3,7 +3,10 @@ import http = require("http");
 import Joi = require("joi");
 import Mongo = require("mongodb");
 import SocketIO = require("socket.io");
-import { ISocketMessage, socketMessageSchema } from "./schemaModelst";
+import {
+    ISocketMessage,
+    socketMessageSchema
+} from "../communicationModels/schemas";
 
 const url = "mongodb://localhost:27017";
 const dbName = "myproject";
@@ -18,7 +21,7 @@ export const appLogic = () => {
         const app = express();
         const server = http.createServer(app);
 
-        app.get("/", (req, res) => res.send("Hello World!"));
+        serveStaticFiles(app);
 
         const io = SocketIO(server);
 
@@ -36,6 +39,13 @@ export const appLogic = () => {
         }
     });
 };
+
+function serveStaticFiles(app: any) {
+    app.use("/client", express.static("public/client.html"));
+    app.use("/host", express.static("public/host.html"));
+    app.use("/bundle.js", express.static("dist/bundle.js"));
+    app.use("/bundle.js.map", express.static("dist/bundle.js.map"));
+}
 
 function handleCommunication(socket: SocketIO.Socket) {
     sockets.add(socket);
