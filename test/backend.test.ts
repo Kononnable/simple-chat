@@ -1,7 +1,8 @@
 import { expect } from "chai";
 import { AddressInfo } from "net";
 import io = require("socket.io-client");
-import { appLogic, ISocketMessage } from "../src/appLogic";
+import { appLogic } from "../src/appLogic";
+import { ISocketMessage } from "../src/schemaModelst";
 
 it("should connect", async () => {
 
@@ -48,9 +49,7 @@ it("should send and recive messages", async () => {
 
     const MessageRecived = new Promise<any>((resolve, reject) => {
         socketClient.on('message', (msg: ISocketMessage) => {
-            if (msg.authorId !== socketClient.id) {
                 resolve(msg.message)
-            }
         })
     })
     const message: ISocketMessage = { message: 'abc', channelId: socketClient.id }
@@ -83,8 +82,6 @@ it("should get active messages", async () => {
     const results = await Promise.all([promiseClient, promiseCS]);
     expect(results[0]).to.be.eq(true);
     expect(results[1]).to.be.eq(true);
-
-
 
     const MessageRecivedPromise = () => new Promise<any>((resolve, reject) => {
         socketCS.once('ActiveMessages', (msg: ISocketMessage[]) => resolve(msg))
