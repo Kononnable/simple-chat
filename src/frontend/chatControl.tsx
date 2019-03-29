@@ -2,7 +2,12 @@ import React = require("react");
 import ConversationList from "./conversationList";
 import MessageList from "./messageList";
 import NewMessage from "./newMessage";
-import { IConversation, IMessage } from "./../communicationModels/schemas";
+import {
+    IConversation,
+    IMessage,
+    ISocketMessage
+} from "./../communicationModels/schemas";
+import io = require("socket.io-client");
 
 export default class ChatControl extends React.Component<
     { admin?: boolean },
@@ -12,42 +17,66 @@ export default class ChatControl extends React.Component<
         socketId: string;
     }
 > {
+    socket: SocketIOClient.Socket;
+
     constructor(props: any) {
         super(props);
+        this.socket = io(window.location.host);
+
+        this.socket.on("connect", () => {
+            if (this.props.admin) {
+                this.setState({ socketId: this.socket.id });
+                this.socket.emit("authenticateAsCS");
+                this.socket.once("authenticateAsCS", () => {
+                    this.socket.emit("ActiveMessages");
+                    this.socket.once(
+                        "ActiveMessages",
+                        (conversations: IConversation[]) => {
+                            if (conversations.length > 0) {
+                                this.setState({
+                                    conversations,
+                                    activeConversation:
+                                        conversations[0].channelId
+                                });
+                            }
+                        }
+                    );
+                });
+            } else {
+                this.setState({
+                    socketId: this.socket.id,
+                    activeConversation: this.socket.id,
+                    conversations: [
+                        {
+                            channelId: this.socket.id,
+                            messages: []
+                        }
+                    ]
+                });
+            }
+        });
+        this.socket.on("message", (msg: ISocketMessage) => {
+            this.addNewMessage(
+                { value: msg.message, author: msg.authorId! },
+                msg.channelId
+            );
+        });
+        this.socket.on("conversationEnded", (channelId: string) => {
+            this.setState(state => {
+                return {
+                    conversations: [
+                        ...state.conversations.filter(
+                            v => v.channelId !== channelId
+                        )
+                    ]
+                };
+            });
+        });
+
         this.state = {
-            // activeConversation: "",
-            // conversations: [],
-            // socketId: ""
-            activeConversation: "asd",
-            conversations: [
-                {
-                    channelId: "asd",
-                    messages: [
-                        {
-                            author: "asd",
-                            value: "message 1"
-                        },
-                        {
-                            author: "dsa",
-                            value: "message 2"
-                        }
-                    ]
-                },
-                {
-                    channelId: "qwe",
-                    messages: [
-                        {
-                            author: "qwe",
-                            value: "message 3"
-                        },
-                        {
-                            author: "asd",
-                            value: "message 4"
-                        }
-                    ]
-                }
-            ],
-            socketId: "asd"
+            activeConversation: "",
+            conversations: [],
+            socketId: ""
         };
     }
 
@@ -59,6 +88,15 @@ export default class ChatControl extends React.Component<
             { author: this.state.socketId, value: content },
             this.state.activeConversation
         );
+        const channelId = this.props.admin
+            ? this.state.activeConversation
+            : this.state.socketId;
+        const message: ISocketMessage = {
+            authorId: this.socket.id,
+            channelId,
+            message: content
+        };
+        this.socket.send(message);
     };
 
     addNewMessage = (message: IMessage, channelId: string) => {
@@ -67,7 +105,7 @@ export default class ChatControl extends React.Component<
                 v => v.channelId === channelId
             );
             if (!oldConversation) {
-                oldConversation = { channelId, messages: [message] };
+                oldConversation = { channelId, messages: [] };
             }
             const newConversation: IConversation = {
                 ...oldConversation,
@@ -91,11 +129,13 @@ export default class ChatControl extends React.Component<
         const messages = conversation ? conversation.messages : [];
         return (
             <div className="chatContainer">
-                <ConversationList
-                    conversations={this.state.conversations}
-                    activeConversation={this.state.activeConversation}
-                    onActiveChange={this.changeActiveConversation}
-                />
+                {this.props.admin && (
+                    <ConversationList
+                        conversations={this.state.conversations}
+                        activeConversation={this.state.activeConversation}
+                        onActiveChange={this.changeActiveConversation}
+                    />
+                )}
                 <MessageList messages={messages} user={this.state.socketId} />
                 <NewMessage onNewMessage={this.sendMessage} />
             </div>

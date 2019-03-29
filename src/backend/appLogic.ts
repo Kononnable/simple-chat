@@ -54,17 +54,17 @@ function handleCommunication(socket: SocketIO.Socket) {
         if (!validateMessage(msg, socket)) {
             return;
         }
-
         msg.authorId = socket.id;
         await forwardMessage(msg, socket);
     });
     socket.on("authenticateAsCS", () => {
         // TODO: Add some kind of authentication
         CSSockets.add(socket);
+        socket.emit("authenticateAsCS");
     });
     socket.on("ActiveMessages", async () => {
         if (!CSSockets.has(socket)) {
-            socket.emit("error", {
+            socket.emit("appError", {
                 message: `Unauthorized`
             });
             return;
@@ -72,9 +72,10 @@ function handleCommunication(socket: SocketIO.Socket) {
         const activeConversations = await getActiveConversations();
         socket.emit("ActiveMessages", activeConversations);
     });
-    socket.on("close", async () => {
+    socket.on("disconnect", async () => {
         sockets.delete(socket);
         CSSockets.delete(socket);
+        [...CSSockets].map(v => v.emit("conversationEnded", socket.id));
         await messages.updateOne(
             { channelId: socket.id },
             { $unset: { channelId: 1 } }
@@ -95,12 +96,12 @@ async function connectToMongo() {
 function validateMessage(msg: ISocketMessage, socket: SocketIO.Socket) {
     const validationResult = Joi.validate(msg, socketMessageSchema);
     if (validationResult.error) {
-        socket.emit("error", {
+        socket.emit("appError", {
             message: validationResult.error.message
         });
         return false;
     } else if (!CSSockets.has(socket) && msg.channelId !== socket.id) {
-        socket.emit("error", {
+        socket.emit("appError", {
             message: "Wrong sender"
         });
         return false;
