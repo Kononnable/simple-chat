@@ -5,7 +5,8 @@ import Mongo = require("mongodb");
 import SocketIO = require("socket.io");
 import {
     ISocketMessage,
-    socketMessageSchema
+    socketMessageSchema,
+    IConversation
 } from "../communicationModels/schemas";
 
 const url = "mongodb://localhost:27017";
@@ -134,13 +135,7 @@ async function forwardMessage(msg: ISocketMessage, socket: SocketIO.Socket) {
 }
 
 async function getActiveConversations() {
-    const activeConversations: Array<{
-        channelId: string;
-        messages: Array<{
-            value: string;
-            author: string;
-        }>;
-    }> = await messages
+    const activeConversations: Array<IConversation> = await messages
         .find({ channelId: { $exists: true } }, { projection: { _id: 0 } })
         .toArray();
     activeConversations

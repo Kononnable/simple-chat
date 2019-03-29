@@ -14,3 +14,13 @@ export interface ISocketMessage {
     channelId: string;
     message: string;
 }
+
+export interface IConversation {
+    channelId: string;
+    messages: IMessage[];
+}
+
+export interface IMessage {
+    value: string;
+    author: string;
+}
