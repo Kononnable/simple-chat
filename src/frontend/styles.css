@@ -1,0 +1,63 @@
+.chatContainer {
+    display: grid;
+    column-gap: 5px;
+    row-gap: 5px;
+    grid-template-rows: 80vh 10vh;
+    grid-template-columns: 200px auto;
+    margin: 10px;
+}
+
+.conversationList {
+    grid-column: 1;
+    grid-row-start: 1;
+    grid-row-end: 3;
+}
+
+.messageList {
+    grid-column: 2;
+    grid-row-start: 1;
+    grid-row-end: 2;
+}
+
+.newMessage {
+    grid-column: 2;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: auto 60px;
+}
+
+.sendButton {
+    grid-column: 2;
+}
+
+.messageInput {
+    grid-column: 1;
+    resize: none;
+}
+
+.message {
+    margin: 5px 0;
+    padding-left: 1.5rem;
+    border-left: 5px solid #ee6e73;
+    text-align: left;
+}
+
+.response {
+    padding-right: 1.5rem;
+    border-right: 5px solid #2bbbad;
+    text-align: right;
+    margin-bottom: 5px;
+}
+
+.conversationList a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.conversation{
+    margin: 2px;
+    height: 40px;
+    border-width: 2px;
+    border-color: brown;
+    border-style: solid;
+}
