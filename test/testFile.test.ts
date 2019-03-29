@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { AddressInfo } from "net";
 import io = require("socket.io-client");
-import { appLogic, ICSMessage, IMessage } from "../src/appLogic";
+import { appLogic, ISocketMessage } from "../src/appLogic";
 
-it("should be able to connect", async () => {
+it("should connect", async () => {
 
     const server = await appLogic();
     const port = (server.address() as AddressInfo).port
@@ -18,7 +18,7 @@ it("should be able to connect", async () => {
     await server.close()
 })
 
-it("should be able to send and recive messages", async () => {
+it("should send and recive messages", async () => {
     const server = await appLogic();
     const port = (server.address() as AddressInfo).port
 
@@ -36,9 +36,9 @@ it("should be able to send and recive messages", async () => {
             socketCS.emit('authenticateAsCS');
             resolve(true);
         });
-        socketCS.on('CSMessage', (msg: ICSMessage) => {
-            const reply = { ...msg, message: msg.message.split("").reverse().join("") }
-            socketCS.emit('CSMessage', reply)
+        socketCS.on('message', (msg: ISocketMessage) => {
+            const reply: ISocketMessage = { channelId: msg.channelId, message: msg.message.split("").reverse().join("") }
+            socketCS.send(reply)
         })
         socketCS.once('error', (data: any) => { reject(data) });
     })
@@ -47,15 +47,20 @@ it("should be able to send and recive messages", async () => {
     expect(results[1]).to.be.eq(true);
 
     const MessageRecived = new Promise<any>((resolve, reject) => {
-        socketClient.once('message', (msg: IMessage) => resolve(msg.message))
+        socketClient.on('message', (msg: ISocketMessage) => {
+            if (msg.authorId !== socketClient.id) {
+                resolve(msg.message)
+            }
+        })
     })
-    socketClient.emit('message', { message: 'abc'})
+    const message: ISocketMessage = { message: 'abc', channelId: socketClient.id }
+    socketClient.send(message)
     const response = await MessageRecived;
     expect(response).to.be.eq('cba')
     await server.close()
 
 })
-it("should be able to get active messages", async () => {
+it("should get active messages", async () => {
     const server = await appLogic();
     const port = (server.address() as AddressInfo).port
 
@@ -81,18 +86,19 @@ it("should be able to get active messages", async () => {
 
 
 
-    const MessageRecivedPromise =  () => new Promise<any>((resolve, reject) => {
-        socketCS.once('ActiveMessages', (msg:[]) => resolve(msg))
+    const MessageRecivedPromise = () => new Promise<any>((resolve, reject) => {
+        socketCS.once('ActiveMessages', (msg: ISocketMessage[]) => resolve(msg))
     })
-    socketCS.emit('ActiveMessages', { })
+    socketCS.emit('ActiveMessages')
     const response = await MessageRecivedPromise();
     expect(response).to.length(0)
 
-    socketClient.emit('message', { message: 'abc' })
+    const message: ISocketMessage = { message: 'abc', channelId: socketClient.id }
+    socketClient.send(message)
 
     await sleep(100);
 
-    socketCS.emit('ActiveMessages', {})
+    socketCS.emit('ActiveMessages')
     const response2 = await MessageRecivedPromise();
     expect(response2).to.length(1)
 
@@ -100,7 +106,7 @@ it("should be able to get active messages", async () => {
 
 })
 
-function sleep(ms:number) {
+function sleep(ms: number) {
     return new Promise(resolve => {
         setTimeout(resolve, ms)
     })

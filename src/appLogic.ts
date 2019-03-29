@@ -4,22 +4,21 @@ import Joi = require("joi");
 import Mongo = require("mongodb");
 import SocketIO = require("socket.io");
 
-const messageSchema = Joi.object().keys({
+const socketMessageSchema = Joi.object().keys({
+    authorId: Joi.string(),
+    channelId: Joi.string().required(),
     message: Joi.string()
         .min(1)
         .max(3000)
         .required()
 });
 
-const CSResponseSchema = messageSchema.keys({
-    socketId: Joi.string().required()
-});
-export interface IMessage {
+export interface ISocketMessage {
+    authorId?: string;
+    channelId: string;
     message: string;
 }
-export interface ICSMessage extends IMessage {
-    socketId: string;
-}
+
 const url = "mongodb://localhost:27017";
 
 const dbName = "myproject";
@@ -37,34 +36,45 @@ export const appLogic = () => {
         const CSSockets: Set<SocketIO.Socket> = new Set();
         io.on("connection", socket => {
             sockets.add(socket);
-            socket.on("message", async (msg: IMessage) => {
-                const validationResult = Joi.validate(msg, messageSchema);
+            socket.on("message", async (msg: ISocketMessage) => {
+                const validationResult = Joi.validate(msg, socketMessageSchema);
                 if (validationResult.error) {
-                    socket.send({
-                        message: `Error: ${validationResult.error.message}`
+                    socket.emit("error", {
+                        message: validationResult.error.message
                     });
-                } else {
-                    const CSMessage: ICSMessage = {
-                        message: msg.message,
-                        socketId: socket.id
-                    };
-                    [...CSSockets].map(sock => {
-                        sock.emit("CSMessage", CSMessage);
-                    });
-                    await messages.updateOne(
-                        { socketId: socket.id },
-                        {
-                            $push: {
-                                messages: {
-                                    msg,
-                                    sender: socket.id
-                                }
-                            },
-                            $set: { unread: true }
-                        },
-                        { upsert: true }
-                    );
+                    return;
                 }
+                if (!CSSockets.has(socket) && msg.channelId !== socket.id) {
+                    socket.emit("error", {
+                        message: "Wrong sender"
+                    });
+                    return;
+                }
+                msg.authorId = socket.id;
+
+                [...CSSockets]
+                    .filter(v => v.id !== socket.id)
+                    .map(sock => {
+                        sock.send(msg);
+                    });
+                const clientSocket = [...sockets].find(
+                    v => v.id === msg.channelId && v.id !== socket.id
+                );
+                if (clientSocket) {
+                    clientSocket.send(msg);
+                }
+                await messages.updateOne(
+                    { channelId: msg.channelId },
+                    {
+                        $push: {
+                            messages: {
+                                author: msg.authorId,
+                                value: msg.message
+                            }
+                        }
+                    },
+                    { upsert: true }
+                );
             });
             socket.on("authenticateAsCS", () => {
                 // TODO: Add some kind of authentication
@@ -72,61 +82,48 @@ export const appLogic = () => {
             });
             socket.on("ActiveMessages", async () => {
                 if (!CSSockets.has(socket)) {
-                    socket.send({
-                        message: `Error: Unauthorized`
+                    socket.emit("error", {
+                        message: `Unauthorized`
                     });
                     return;
                 }
-                const activeConversations = await messages
+                const activeConversations: Array<{
+                    channelId: string;
+                    messages: Array<{
+                        value: string;
+                        author: string;
+                    }>;
+                }> = await messages
                     .find(
-                        { socketId: { $exists: true } },
+                        { channelId: { $exists: true } },
                         { projection: { _id: 0 } }
                     )
                     .toArray();
+
+                activeConversations
+                    .map(v =>
+                        v.messages.map(v2 => {
+                            const retVal: ISocketMessage = {
+                                authorId: v2.author,
+                                channelId: v.channelId,
+                                message: v2.value
+                            };
+                            return retVal;
+                        })
+                    )
+                    .reduce((pv, cv) => {
+                        pv.push(...cv);
+                        return pv;
+                    }, []);
                 socket.emit("ActiveMessages", activeConversations);
             });
-            socket.on("CSMessage", async (msg: ICSMessage) => {
-                if (!CSSockets.has(socket)) {
-                    socket.send({
-                        message: `Error: Unauthorized`
-                    });
-                    return;
-                }
-                const validationResult = Joi.validate(msg, CSResponseSchema);
-                if (validationResult.error) {
-                    socket.send({
-                        message: `Error: ${validationResult.error.message}`
-                    });
-                } else {
-                    const result = await messages.findOneAndUpdate(
-                        { socketId: msg.socketId },
-                        {
-                            $push: {
-                                messages: msg.message
-                            },
-                            $set: {
-                                sender: socket.id,
-                                unread: false
-                            }
-                        }
-                    );
-                    const clientSocket = [...sockets].find(
-                        s =>
-                            result.value.socketId &&
-                            s.id === result.value.socketId
-                    );
-                    if (clientSocket !== undefined) {
-                        const message: IMessage = { message: msg.message };
-                        await clientSocket.send(message);
-                    }
-                }
-            });
+
             socket.on("close", async () => {
                 sockets.delete(socket);
                 CSSockets.delete(socket);
                 await messages.updateOne(
-                    { socketId: socket.id },
-                    { $unset: { socketId: 1 } }
+                    { channelId: socket.id },
+                    { $unset: { channelId: 1 } }
                 );
             });
             /* … */
@@ -140,8 +137,8 @@ export const appLogic = () => {
         try {
             await mongoClient.connect();
             messages = mongoClient.db(dbName).collection("messages");
-            await messages.createIndex({ socketId: 1 });
-            await messages.updateMany({}, { $unset: { socketId: 1 } }); // in case of unclean shutdown
+            await messages.createIndex({ channelId: 1 });
+            await messages.updateMany({}, { $unset: { channelId: 1 } }); // in case of unclean shutdown
             server.listen(port, () => {
                 resolve(server);
             });
