@@ -9,9 +9,9 @@ import {
     IConversation
 } from "../communicationModels/schemas";
 
-const url = "mongodb://localhost:27017";
-const dbName = "myproject";
+const url = process.env.CONNECTIONSTRING || "mongodb://chat-mongodb:27017";
 const port = process.env.PORT || 3000;
+const dbName = process.env.DBNAME || "simple-chat";
 
 const sockets: Set<SocketIO.Socket> = new Set();
 const CSSockets: Set<SocketIO.Socket> = new Set();
@@ -85,9 +85,12 @@ function handleCommunication(socket: SocketIO.Socket) {
 
 async function connectToMongo() {
     const mongoClient = new Mongo.MongoClient(url, {
-        useNewUrlParser: true
+        useNewUrlParser: true,
+        autoReconnect: true
     });
+
     await mongoClient.connect();
+
     messages = mongoClient.db(dbName).collection("messages");
     await messages.createIndex({ channelId: 1 });
     await messages.updateMany({}, { $unset: { channelId: 1 } }); // in case of unclean shutdown

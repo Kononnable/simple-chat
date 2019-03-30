@@ -5,8 +5,9 @@
     "main": "dist/index.js",
     "scripts": {
         "start": "node ./dist/src/backend/index.js",
-        "watch": "npm run clean && tsc -w & webpack -w",
-        "compile": "npm run clean && tsc && webpack",
+        "watch": "npm run clean && tsc -w & webpack -w --mode development",
+        "compile-dev": "npm run clean && tsc && webpack --mode development",
+        "compile-prod": "npm run clean && tsc && webpack --mode production",
         "prettier": "prettier --write ./src/**/*.ts ./src/**/*.tsx",
         "clean": "rimraf dist",
         "test": "mocha dist/test/**/*.test.js  -- -R spec --bail --exit"

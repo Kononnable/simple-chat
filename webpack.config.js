@@ -1,6 +1,5 @@
 module.exports = {
     entry: "./src/frontend/index.tsx",
-    mode: "development",
     output: {
         filename: "bundle.js",
         path: __dirname + "/dist"
