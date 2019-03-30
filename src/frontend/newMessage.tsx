@@ -6,13 +6,14 @@ export default class NewMessage extends React.Component<
     },
     { value: string }
 > {
+    textInput = React.createRef<HTMLTextAreaElement>();
+
     constructor(props: any) {
         super(props);
         this.state = {
             value: ""
         };
     }
-
     handleChange = (e: any) => {
         this.setState({ value: e.target.value });
     };
@@ -22,20 +23,29 @@ export default class NewMessage extends React.Component<
             this.props.onNewMessage(this.state.value);
             this.setState({ value: "" });
         }
+        this.textInput.current!.focus();
+    };
+    handleKeyPress = (e: any) => {
+        if (e.charCode == 13 && !e.shiftKey) {
+            e.preventDefault();
+            this.handleClick();
+        }
     };
 
     render() {
         return (
             <div className="newMessage">
                 <textarea
-                    className="messageInput"
+                    className="messageInput form-control"
                     rows={3}
                     value={this.state.value}
                     onChange={this.handleChange}
+                    onKeyPress={this.handleKeyPress}
+                    ref={this.textInput}
                 />
                 <button
                     type="button"
-                    className="sendButton"
+                    className="sendButton btn"
                     onClick={this.handleClick}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

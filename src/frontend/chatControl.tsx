@@ -128,7 +128,7 @@ export default class ChatControl extends React.Component<
         );
         const messages = conversation ? conversation.messages : [];
         return (
-            <div className="chatContainer">
+            <div className="chatContainer card">
                 {this.props.admin && (
                     <ConversationList
                         conversations={this.state.conversations}
@@ -136,8 +136,13 @@ export default class ChatControl extends React.Component<
                         onActiveChange={this.changeActiveConversation}
                     />
                 )}
-                <MessageList messages={messages} user={this.state.socketId} />
-                <NewMessage onNewMessage={this.sendMessage} />
+                <div className="rightPanel">
+                    <MessageList
+                        messages={messages}
+                        user={this.state.socketId}
+                    />
+                    <NewMessage onNewMessage={this.sendMessage} />
+                </div>
             </div>
         );
     }

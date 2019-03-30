@@ -18,13 +18,13 @@ export default class ConversationList extends React.Component<{
         const conversations = this.props.conversations.map((v, i) => {
             if (v.channelId === this.props.activeConversation) {
                 return (
-                    <div className="conversation" key={i}>
-                        <b>{v.channelId}</b>
+                    <div className="conversation card bg-primary" key={i}>
+                        {v.channelId}
                     </div>
                 );
             } else {
                 return (
-                    <div className="conversation" key={i}>
+                    <div className="conversation card bg-secondary" key={i}>
                         <a href="#" onClick={this.handleClick}>
                             {v.channelId}
                         </a>
@@ -32,6 +32,8 @@ export default class ConversationList extends React.Component<{
                 );
             }
         });
-        return <div className="conversationList">{conversations}</div>;
+        return (
+            <div className="conversationList list-group">{conversations}</div>
+        );
     }
 }
