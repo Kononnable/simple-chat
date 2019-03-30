@@ -92,7 +92,7 @@ async function connectToMongo() {
     await mongoClient.connect();
 
     messages = mongoClient.db(dbName).collection("messages");
-    await messages.createIndex({ channelId: 1 });
+    await messages.createIndex({ channelId: 1 }, { sparse: true });
     await messages.updateMany({}, { $unset: { channelId: 1 } }); // in case of unclean shutdown
 }
 

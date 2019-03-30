@@ -84,6 +84,9 @@ export default class ChatControl extends React.Component<
         this.setState({ activeConversation: id });
     };
     sendMessage = (content: string) => {
+        if (this.state.activeConversation === "") {
+            return;
+        }
         this.addNewMessage(
             { author: this.state.socketId, value: content },
             this.state.activeConversation
